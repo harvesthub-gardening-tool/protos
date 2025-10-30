@@ -65,12 +65,59 @@ jobs:
 
           go mod tidy
 
-      - name: Create Go package tag
+      - name: Publish Go module to separate repository
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Determine version
+          VERSION="v0.0.0-$(git rev-parse --short HEAD)"
+          
+          # Clone or create the protos-go repository
+          cd /tmp
+          if gh repo view harvesthub-gardening-tool/protos-go >/dev/null 2>&1; then
+            gh repo clone harvesthub-gardening-tool/protos-go
+          else
+            mkdir protos-go
+            cd protos-go
+            git init
+            git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/harvesthub-gardening-tool/protos-go.git
+          fi
+          
+          cd /tmp/protos-go
+          
+          # Copy generated code
+          rm -rf *
+          cp -r ${{ github.workspace }}/gen/go/* .
+          cp ${{ github.workspace }}/gen/go/go.mod .
+          cp ${{ github.workspace }}/gen/go/go.sum .
+          
+          # Commit and push
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          
+          if ! git diff --quiet --staged 2>/dev/null || ! git rev-parse HEAD >/dev/null 2>&1; then
+            git commit -m "Generate proto code from ${{ github.sha }}"
+            git push -f origin main
+          else
+            echo "No changes to publish"
+          fi
+
+      - name: Tag Go module version
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ github.ref_name }}"
-          GO_TAG="go/${VERSION}"
-
-          # Create and push tag for Go module
-          git tag "${GO_TAG}"
-          git push origin "${GO_TAG}"
+          
+          # Clone the protos-go repository
+          cd /tmp
+          gh repo clone harvesthub-gardening-tool/protos-go
+          cd protos-go
+          
+          # Create and push version tag
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git tag "${VERSION}"
+          git push origin "${VERSION}"
