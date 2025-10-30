@@ -6,7 +6,7 @@ package garden.v1;
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-option go_package = "harvest-hub/api/gen/proto/garden/v1;gardenv1";
+option go_package = "github.com/harvesthub-gardening-tool/protos-go/garden/v1;gardenv1";
 // OpenAPI General API Info
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
