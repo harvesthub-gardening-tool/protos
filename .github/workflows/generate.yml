@@ -102,7 +102,7 @@ jobs:
       - name: Tag Go module version
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
         run: |
           VERSION="${{ github.ref_name }}"
           
@@ -110,6 +110,9 @@ jobs:
           cd /tmp
           gh repo clone harvesthub-gardening-tool/protos-go
           cd protos-go
+          
+          # Configure git to use token for authentication
+          git config url."https://x-access-token:${PUBLISH_TOKEN}@github.com/".insteadOf "https://github.com/"
           
           # Create and push version tag
           git config user.name 'github-actions[bot]'
