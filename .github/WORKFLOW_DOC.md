@@ -22,9 +22,11 @@ This directory contains modular workflows and scripts for proto code generation 
 ## 🔄 Workflow Flow
 
 ### 1. **generate.yml** - Code Generation
+
 Triggers on: Push to any branch, PRs to main
 
 **Jobs:**
+
 - `validate` - Lints proto files
 - `generate-go` - Generates Go code
 - `generate-docs` - Generates OpenAPI documentation
@@ -32,9 +34,11 @@ Triggers on: Push to any branch, PRs to main
 **Outputs:** Artifacts uploaded for use by other workflows
 
 ### 2. **publish-go.yml** - Go Publishing
+
 Triggers on: Successful completion of `generate.yml` on push events
 
 **Jobs:**
+
 - `publish-go` - Publishes to `protos-go` repository
   - Main branch → publishes to `protos-go/main`
   - Feature branch → publishes to `protos-go/feature-branch`
@@ -44,6 +48,7 @@ Triggers on: Successful completion of `generate.yml` on push events
 ## 🛠️ Scripts Reference
 
 ### create-go-module.sh
+
 Creates a Go module with proper dependencies.
 
 ```bash
@@ -54,6 +59,7 @@ Creates a Go module with proper dependencies.
 ```
 
 ### publish-to-repo.sh
+
 Publishes generated code to a target repository.
 
 ```bash
@@ -66,6 +72,7 @@ Publishes generated code to a target repository.
 **Environment:** Requires `GH_TOKEN` environment variable
 
 ### cleanup-merged-branches.sh
+
 Cleans up branches in target repo that no longer exist in source.
 
 ```bash
@@ -78,6 +85,7 @@ Cleans up branches in target repo that no longer exist in source.
 **Environment:** Requires `GH_TOKEN` environment variable
 
 ### tag-version.sh
+
 Creates a version tag in the target repository.
 
 ```bash
