@@ -75,6 +75,9 @@ jobs:
           gh repo clone harvesthub-gardening-tool/protos-go
           cd protos-go
           
+          # Configure git to use token for authentication
+          git config url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          
           # Ensure we're on main branch
           git checkout main 2>/dev/null || git checkout -b main
           
