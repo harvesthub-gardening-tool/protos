@@ -45,7 +45,7 @@ jobs:
           mkdir -p docs-site
           
           # Copy OpenAPI JSON files
-          cp -r gen/openapiv2/* docs-site/
+          cp gen/openapiv2/api.swagger.json docs-site/
           
           # Create beautiful index.html with Swagger UI
           cat > docs-site/index.html << 'EOF'
@@ -77,7 +77,7 @@ jobs:
             <script>
               window.onload = () => {
                 window.ui = SwaggerUIBundle({
-                  url: './garden/v1/garden.swagger.json',
+                  url: './api.swagger.json',
                   dom_id: '#swagger-ui',
                   deepLinking: true,
                   presets: [
@@ -103,9 +103,9 @@ jobs:
           
           ## Available APIs
           
-          - [Garden Service API](./garden/v1/garden.swagger.json)
+          - [Garden Service API](./api.swagger.json)
           
-          ## Usage in Backend
+          ## Usage
           
           The OpenAPI/Swagger files can be used for:
           - API documentation
@@ -113,11 +113,11 @@ jobs:
           - Contract testing
           - Mock servers
           
-          ## Download Specs
+          ## Download Spec
           
-          Download the OpenAPI specs:
+          Download the OpenAPI spec:
           ```bash
-          curl -O https://harvesthub-gardening-tool.github.io/protos/garden/v1/garden.swagger.json
+          curl -O https://harvesthub-gardening-tool.github.io/protos/api.swagger.json
           ```
           EOF
 
