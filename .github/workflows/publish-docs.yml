@@ -1,0 +1,134 @@
+name: Publish Documentation
+
+on:
+  workflow_run:
+    workflows: ["Generate Proto Code"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  publish-docs:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate OpenAPI docs
+        run: buf generate --template buf.gen.docs.yaml
+
+      - name: Create documentation site
+        run: |
+          mkdir -p docs-site
+          
+          # Copy OpenAPI JSON files
+          cp -r gen/openapiv2/* docs-site/
+          
+          # Create beautiful index.html with Swagger UI
+          cat > docs-site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Harvest Hub API Documentation</title>
+            <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+            <style>
+              body {
+                margin: 0;
+                padding: 0;
+              }
+              .topbar {
+                display: none;
+              }
+              #swagger-ui {
+                max-width: 1460px;
+                margin: 0 auto;
+              }
+            </style>
+          </head>
+          <body>
+            <div id="swagger-ui"></div>
+            <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+            <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+            <script>
+              window.onload = () => {
+                window.ui = SwaggerUIBundle({
+                  url: './garden/v1/garden.swagger.json',
+                  dom_id: '#swagger-ui',
+                  deepLinking: true,
+                  presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                  ],
+                  plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                  ],
+                  layout: "StandaloneLayout"
+                });
+              };
+            </script>
+          </body>
+          </html>
+          EOF
+          
+          # Create README
+          cat > docs-site/README.md << 'EOF'
+          # Harvest Hub API Documentation
+          
+          This site contains the auto-generated API documentation for Harvest Hub services.
+          
+          ## Available APIs
+          
+          - [Garden Service API](./garden/v1/garden.swagger.json)
+          
+          ## Usage in Backend
+          
+          The OpenAPI/Swagger files can be used for:
+          - API documentation
+          - Client generation
+          - Contract testing
+          - Mock servers
+          
+          ## Download Specs
+          
+          Download the OpenAPI specs:
+          ```bash
+          curl -O https://harvesthub-gardening-tool.github.io/protos/garden/v1/garden.swagger.json
+          ```
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs-site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
