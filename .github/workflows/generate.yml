@@ -1,0 +1,50 @@
+name: Generate and Publish Protos
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Buf lint
+        run: buf lint
+      
+      - name: Generate Go code
+        run: buf generate --template buf.gen.go.yaml
+      
+      - name: Generate Rust code
+        run: buf generate --template buf.gen.rust.yaml
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      
+      - name: Initialize Go module
+        run: |
+          cd gen/go
+          go mod init github.com/harvesthub-gardening-tool/protos/gen/go || true
+          go mod tidy
+      
+      - name: Commit and push generated code
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add gen/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: regenerate proto code [skip ci]" && git push)
