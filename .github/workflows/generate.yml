@@ -34,6 +34,9 @@ jobs:
       - name: Generate Rust code
         run: buf generate --template buf.gen.rust.yaml
       
+      - name: Generate OpenAPI/Swagger docs
+        run: buf generate --template buf.gen.docs.yaml
+      
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
