@@ -68,7 +68,7 @@ jobs:
       - name: Publish Go module to separate repository
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
         run: |
           # Clone the protos-go repository (must exist)
           cd /tmp
@@ -76,7 +76,7 @@ jobs:
           cd protos-go
           
           # Configure git to use token for authentication
-          git config url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config url."https://x-access-token:${PUBLISH_TOKEN}@github.com/".insteadOf "https://github.com/"
           
           # Ensure we're on main branch
           git checkout main 2>/dev/null || git checkout -b main
