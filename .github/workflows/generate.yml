@@ -3,6 +3,8 @@ name: Generate and Publish Protos
 on:
   push:
     branches: [main]
+    tags:
+      - 'v*'
   pull_request:
     branches: [main]
 
@@ -15,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Setup Buf
         uses: bufbuild/buf-setup-action@v1
@@ -35,10 +39,22 @@ jobs:
         with:
           go-version: '1.24'
       
-      - name: Initialize Go module
+      - name: Create Go module with version
         run: |
           cd gen/go
-          go mod init github.com/harvesthub-gardening-tool/protos/gen/go || true
+          
+          # Initialize go.mod
+          cat > go.mod << 'EOF'
+          module github.com/harvesthub-gardening-tool/protos-go
+          
+          go 1.24
+          
+          require (
+            connectrpc.com/connect v1.19.1
+            google.golang.org/protobuf v1.36.10
+          )
+          EOF
+          
           go mod tidy
       
       - name: Commit and push generated code
@@ -48,3 +64,12 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add gen/
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore: regenerate proto code [skip ci]" && git push)
+      
+      - name: Create Go package release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          # Tag for Go module (pseudo-version or actual tag)
+          VERSION=$(git describe --tags --always)
+          cd gen/go
+          git tag "go/${VERSION}" 2>/dev/null || true
+          git push origin "go/${VERSION}" 2>/dev/null || true

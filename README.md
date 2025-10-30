@@ -19,23 +19,19 @@ Central repository for all Harvest Hub API definitions using Protocol Buffers.
 
 ### Go (Server)
 
-In your `go.mod`:
-```go
-require github.com/harvesthub-gardening-tool/protos/gen/go v0.0.0-latest
-```
-
-Or use:
 ```bash
-go get github.com/harvesthub-gardening-tool/protos/gen/go@main
+go get github.com/harvesthub-gardening-tool/protos-go@latest
 ```
 
 Then import:
 ```go
 import (
-    gardenv1 "github.com/harvesthub-gardening-tool/protos/gen/go/garden/v1"
-    "github.com/harvesthub-gardening-tool/protos/gen/go/garden/v1/gardenv1connect"
+    gardenv1 "github.com/harvesthub-gardening-tool/protos-go/garden/v1"
+    "github.com/harvesthub-gardening-tool/protos-go/garden/v1/gardenv1connect"
 )
 ```
+
+The generated Go code is published as a Go module on GitHub and can be imported directly.
 
 ### Rust (Client)
 
