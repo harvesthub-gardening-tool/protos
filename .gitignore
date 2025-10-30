@@ -1,5 +1,5 @@
 # Don't ignore generated code - we commit it for easy consumption
-# gen/
+gen/
 
 # OS
 .DS_Store
