@@ -1,9 +1,9 @@
-name: Generate and Publish Protos
+name: Generate Proto Code
+
 on:
   push:
     branches: [main]
-    tags:
-      - "v*"
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
@@ -12,10 +12,12 @@ permissions:
   packages: write
 
 jobs:
-  generate:
+  validate:
+    name: Validate Proto Files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -24,126 +26,52 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Buf lint
+      - name: Lint proto files
         run: buf lint
 
-      - name: Generate Go code
-        run: buf generate --template buf.gen.go.yaml
+  generate-go:
+    name: Generate Go Code
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # - name: Generate Rust code
-      # run: buf generate --template buf.gen.rust.yaml
-
-      - name: Generate OpenAPI/Swagger docs
-        run: buf generate --template buf.gen.docs.yaml
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.23"
 
-      - name: Create Go module with version
+      - name: Generate Go code
+        run: buf generate --template buf.gen.go.yaml
+
+      - name: Create Go module
         run: |
-          cd gen/go
+          chmod +x .github/scripts/create-go-module.sh
+          .github/scripts/create-go-module.sh \
+            "gen/go" \
+            "github.com/harvesthub-gardening-tool/protos-go" \
+            "${{ github.ref }}"
 
-          # Determine version
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${{ github.ref_name }}"
-          else
-            VERSION="v0.0.0-$(git rev-parse --short HEAD)"
-          fi
+  generate-docs:
+    name: Generate Documentation
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-          cat > go.mod << EOF
-          module github.com/harvesthub-gardening-tool/protos-go
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-          go 1.23
-
-          require (
-            connectrpc.com/connect v1.19.1
-            google.golang.org/protobuf v1.36.10
-          )
-          EOF
-
-          go mod tidy
-
-      - name: Publish Go module to separate repository
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
-        run: |
-          # Clone the protos-go repository (must exist)
-          cd /tmp
-          gh repo clone harvesthub-gardening-tool/protos-go
-          cd protos-go
-          
-          # Configure git to use token for authentication
-          git config url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
-          
-          # Determine branch name based on event
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            BRANCH_NAME="main"
-          else
-            # For other branches, use the branch name
-            BRANCH_NAME="${{ github.ref_name }}"
-          fi
-          
-          echo "Publishing to branch: ${BRANCH_NAME}"
-          
-          # Checkout or create the branch
-          git checkout ${BRANCH_NAME} 2>/dev/null || git checkout -b ${BRANCH_NAME}
-          
-          # Copy generated code
-          rm -rf *
-          cp -r ${{ github.workspace }}/gen/go/* .
-          cp ${{ github.workspace }}/gen/go/go.mod .
-          cp ${{ github.workspace }}/gen/go/go.sum .
-          
-          # Commit and push
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add .
-          
-          if git diff --quiet --staged; then
-            echo "No changes to publish"
-          else
-            git commit -m "Generate proto code from ${{ github.sha }}"
-            git push origin ${BRANCH_NAME}
-          fi
-
-      - name: Cleanup merged PR branches
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
-        run: |
-          cd /tmp/protos-go
-          
-          # Get all remote branches except main
-          BRANCHES=$(git branch -r | grep -v 'HEAD' | grep -v 'main' | sed 's|origin/||')
-          
-          for BRANCH in $BRANCHES; do
-            # Check if corresponding branch exists in protos repo
-            if ! git ls-remote --heads https://github.com/harvesthub-gardening-tool/protos.git ${BRANCH} | grep -q ${BRANCH}; then
-              echo "Deleting merged branch: ${BRANCH}"
-              git push origin --delete ${BRANCH} || true
-            fi
-          done
-
-      - name: Tag Go module version
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
-        run: |
-          VERSION="${{ github.ref_name }}"
-          
-          # Clone the protos-go repository
-          cd /tmp
-          gh repo clone harvesthub-gardening-tool/protos-go
-          cd protos-go
-          
-          # Configure git to use token for authentication
-          git config url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
-          
-          # Create and push version tag
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git tag "${VERSION}"
-          git push origin "${VERSION}"
+      - name: Generate OpenAPI docs
+        run: buf generate --template buf.gen.docs.yaml
