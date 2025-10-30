@@ -35,6 +35,7 @@ go get github.com/harvesthub-gardening-tool/protos-go@latest
 ```
 
 Import in your code:
+
 ```go
 import (
     gardenv1 "github.com/harvesthub-gardening-tool/protos-go/garden/v1"
@@ -43,6 +44,7 @@ import (
 ```
 
 **Test feature branches before merging:**
+
 ```bash
 go get github.com/harvesthub-gardening-tool/protos-go@feature/your-branch
 ```
@@ -50,6 +52,7 @@ go get github.com/harvesthub-gardening-tool/protos-go@feature/your-branch
 ### OpenAPI/Swagger
 
 Access the OpenAPI spec:
+
 - **Interactive docs:** https://harvesthub-gardening-tool.github.io/protos/
 - **JSON spec:** https://harvesthub-gardening-tool.github.io/protos/api.swagger.json
 
@@ -88,6 +91,7 @@ git push origin feature/new-sensor-type
 ```
 
 **What happens automatically:**
+
 - ✅ Validates proto files
 - ✅ Generates code
 - ✅ Publishes to `protos-go/feature/new-sensor-type`
@@ -96,6 +100,7 @@ git push origin feature/new-sensor-type
 ### Merging to Main
 
 When you merge a PR:
+
 - ✅ Publishes to `protos-go/main`
 - ✅ Updates docs at GitHub Pages
 - ✅ Auto-deletes feature branch from `protos-go`
@@ -112,10 +117,10 @@ git push origin v1.0.0
 
 ## 📦 Published Artifacts
 
-| Artifact | Location | Auto-Updated |
-|----------|----------|--------------|
-| Go Code | [protos-go](https://github.com/harvesthub-gardening-tool/protos-go) | ✅ On every push |
-| API Docs | [GitHub Pages](https://harvesthub-gardening-tool.github.io/protos/) | ✅ On main push |
+| Artifact | Location                                                            | Auto-Updated     |
+| -------- | ------------------------------------------------------------------- | ---------------- |
+| Go Code  | [protos-go](https://github.com/harvesthub-gardening-tool/protos-go) | ✅ On every push |
+| API Docs | [GitHub Pages](https://harvesthub-gardening-tool.github.io/protos/) | ✅ On main push  |
 
 ## 🛠️ Adding New Services
 
@@ -127,7 +132,7 @@ git push origin v1.0.0
 
 ## 📖 Learn More
 
-- [Workflow Documentation](.github/README.md) - How the automation works
+- [Workflow Documentation](.github/WORKFLOW_DOC.md) - How the automation works
 - [Workflow Review](.github/WORKFLOW_REVIEW.md) - Complete scenarios and validation
 
 ## License
