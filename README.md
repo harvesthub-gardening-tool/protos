@@ -17,6 +17,13 @@ Central repository for all Harvest Hub API definitions using Protocol Buffers.
 
 ## Usage in Your Projects
 
+### OpenAPI/Swagger Documentation
+
+After generation, the OpenAPI v2 (Swagger) documentation is available at:
+- `gen/openapiv2/api.swagger.json`
+
+You can use this with Swagger UI, Postman, or any OpenAPI-compatible tool to explore the API.
+
 ### Go (Server)
 
 ```bash
@@ -56,6 +63,9 @@ buf generate --template buf.gen.go.yaml
 
 # Generate Rust code
 buf generate --template buf.gen.rust.yaml
+
+# Generate OpenAPI/Swagger docs
+buf generate --template buf.gen.docs.yaml
 ```
 
 ### Lint Proto Files
@@ -68,7 +78,7 @@ buf lint
 
 On every push to `main`, GitHub Actions automatically:
 1. Lints proto files
-2. Generates Go and Rust code
+2. Generates Go code, Rust code, and OpenAPI/Swagger docs
 3. Commits generated code back to the repo
 
 ## Adding New Services
