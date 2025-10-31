@@ -31,8 +31,6 @@ Triggers on: Push to any branch, PRs to main
 - `generate-go` - Generates Go code
 - `generate-docs` - Generates OpenAPI documentation
 
-**Outputs:** Artifacts uploaded for use by other workflows
-
 ### 2. **publish-go.yml** - Go Publishing
 
 Triggers on: Successful completion of `generate.yml` on push events

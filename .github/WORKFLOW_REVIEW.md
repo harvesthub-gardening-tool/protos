@@ -31,10 +31,9 @@ git push origin feature/new-sensor
    - ✅ `validate` job: Lints proto files
    - ✅ `generate-go` job: Generates Go code, creates go.mod
    - ✅ `generate-docs` job: Generates OpenAPI docs
-   - ✅ Uploads artifacts (for 7 days)
 
 2. **publish-go.yml** triggers (after generate.yml succeeds):
-   - ✅ `publish-go` job: 
+   - ✅ `publish-go` job:
      - Regenerates code
      - Calls `publish-to-repo.sh`
      - Pushes to `protos-go/feature/new-sensor` branch
@@ -130,7 +129,6 @@ git push origin v1.2.0
   - [x] Validates proto files
   - [x] Generates Go code
   - [x] Generates docs
-  - [x] Uploads artifacts
 
 - [x] `publish-go.yml`
   - [x] Triggers after generate.yml
@@ -151,9 +149,11 @@ git push origin v1.2.0
 ## 🐛 Known Issues & Fixes
 
 ### Issue 1: workflow_run tag detection
+
 **Problem:** `github.event.workflow_run.head_branch` for tags is the branch name, not `refs/tags/v*`
 
 **Current code:**
+
 ```yaml
 if: startsWith(github.event.workflow_run.head_branch, 'v')
 ```
@@ -161,11 +161,13 @@ if: startsWith(github.event.workflow_run.head_branch, 'v')
 **Fix:** This should work for tags like `v1.0.0`
 
 ### Issue 2: Absolute paths
+
 **Fixed:** Added `realpath` to `publish-to-repo.sh`
 
 ## 🧪 Testing Plan
 
 ### 1. Test Feature Branch
+
 ```bash
 cd /tmp/protos
 git checkout -b test/workflow-validation
@@ -175,27 +177,32 @@ git commit -m "test: validate workflow"
 git push origin test/workflow-validation
 ```
 
-**Expected:** 
+**Expected:**
+
 - ✅ generate.yml runs
 - ✅ publish-go.yml creates `protos-go/test/workflow-validation`
 
 ### 2. Test Main Merge
+
 ```bash
 # Merge PR on GitHub
 ```
 
 **Expected:**
+
 - ✅ generate.yml runs
 - ✅ publish-go.yml updates `protos-go/main`
 - ✅ cleanup-go.yml deletes `protos-go/test/workflow-validation`
 
 ### 3. Test Version Tag
+
 ```bash
 git tag v0.0.1-test
 git push origin v0.0.1-test
 ```
 
 **Expected:**
+
 - ✅ generate.yml runs
 - ✅ publish-go.yml creates tag `v0.0.1-test` in protos-go
 
@@ -204,6 +211,7 @@ git push origin v0.0.1-test
 **Status:** ✅ READY TO DEPLOY
 
 **What we have:**
+
 - ✅ Modular, clean workflow structure
 - ✅ Reusable scripts for any language
 - ✅ Proper error handling
@@ -212,6 +220,7 @@ git push origin v0.0.1-test
 - ✅ Version tagging
 
 **What to do next:**
+
 1. Commit and push all changes
 2. Test with a feature branch
 3. Monitor GitHub Actions
