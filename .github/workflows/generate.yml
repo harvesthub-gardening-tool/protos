@@ -60,6 +60,35 @@ jobs:
             "github.com/harvesthub-gardening-tool/protos-go" \
             "${{ github.ref }}"
 
+  generate-rust:
+    name: Generate Rust Code
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install protoc and plugins
+        run: |
+          sudo apt-get install -y protobuf-compiler
+          cargo install prost-build tonic-build
+          
+      - name: Generate Rust code
+        run: buf generate --template buf.gen.rust.yaml
+
   generate-docs:
     name: Generate Documentation
     needs: validate

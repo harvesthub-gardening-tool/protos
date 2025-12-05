@@ -1,0 +1,110 @@
+name: Publish Rust Module
+
+on:
+  workflow_run:
+    workflows: ["Generate Proto Code"]
+    types: [completed]
+    branches: ["**"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-rust:
+    name: Publish to protos-rust Repository
+    runs-on: ubuntu-latest
+    # Only run if generate workflow succeeded AND it was a push (not a PR)
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install protoc and plugins
+        run: |
+          sudo apt-get install -y protobuf-compiler
+          cargo install prost-build tonic-build
+
+      - name: Generate Rust code
+        run: buf generate --template buf.gen.rust.yaml
+
+      - name: Prepare Rust module
+        run: |
+          chmod +x .github/scripts/create-rust-module.sh
+          .github/scripts/create-rust-module.sh "gen/rust"
+
+      - name: Determine branch name
+        id: branch
+        run: |
+          if [[ "${{ github.event.workflow_run.head_branch }}" == "main" ]]; then
+            echo "name=main" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to protos-rust
+        env:
+          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
+        run: |
+          chmod +x .github/scripts/publish-to-repo.sh
+          .github/scripts/publish-to-repo.sh \
+            "${{ github.workspace }}/gen/rust" \
+            "harvesthub-gardening-tool/protos-rust" \
+            "${{ steps.branch.outputs.name }}" \
+            "${{ github.event.workflow_run.head_sha }}"
+    
+  cleanup-rust:
+    name: Cleanup Merged Branches
+    runs-on: ubuntu-latest
+    # Only cleanup when merging to main
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cleanup merged branches
+        env:
+          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
+        run: |
+          chmod +x .github/scripts/cleanup-merged-branches.sh
+          .github/scripts/cleanup-merged-branches.sh \
+            "harvesthub-gardening-tool/protos-go" \
+            "harvesthub-gardening-tool/protos"
+
+  tag-rust:
+    name: Tag Version in protos-rust
+    runs-on: ubuntu-latest
+    # Only tag when pushing a version tag
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "tag=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+
+      - name: Create tag in protos-rust
+        env:
+          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
+        run: |
+          chmod +x .github/scripts/tag-version.sh
+          .github/scripts/tag-version.sh \
+            "harvesthub-gardening-tool/protos-rust" \
+            "${{ steps.version.outputs.tag }}"
