@@ -30,18 +30,13 @@ cat > package.json << EOF
   "version": "${VERSION}",
   "description": "Generated TypeScript code from Protocol Buffers",
   "type": "module",
-  "main": "./index.js",
-  "types": "./index.d.ts",
+  "main": "./index.ts",
+  "types": "./index.ts",
   "exports": {
-    ".": {
-      "types": "./index.d.ts",
-      "import": "./index.js"
-    }
+    ".": "./index.ts",
+    "./*": "./*.ts"
   },
-  "scripts": {
-    "build": "tsc",
-    "prepare": "npm run build"
-  },
+  "scripts": {},
   "keywords": [
     "protobuf",
     "grpc",
@@ -51,12 +46,8 @@ cat > package.json << EOF
   "license": "MIT",
   "peerDependencies": {
     "@bufbuild/protobuf": "^2.2.2",
-    "@connectrpc/connect": "^2.0.0"
-  },
-  "devDependencies": {
-    "@bufbuild/protobuf": "^2.2.2",
     "@connectrpc/connect": "^2.0.0",
-    "typescript": "^5.7.2"
+    "typescript": ">=5.0.0"
   }
 }
 EOF
@@ -77,10 +68,11 @@ cat > tsconfig.json << EOF
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "isolatedModules": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/*.d.ts"]
 }
 EOF
 
@@ -113,10 +105,19 @@ EOF
 
 echo "✅ README.md created"
 
-# Create a simple index.ts that exports all generated files
+# Create a comprehensive index.ts that exports all generated TypeScript files
 cat > index.ts << 'EOF'
 // Auto-generated index file
-export * from './garden/v1/garden_pb.js';
+// Re-export all generated Protocol Buffer types and services
 EOF
+
+# Find all _pb.ts and _connect.ts files and add exports
+find . -name "*_pb.ts" -o -name "*_connect.ts" | while read -r file; do
+  # Remove leading ./ and convert to relative path
+  relative_path="${file#./}"
+  # Remove .ts extension for the import
+  import_path="${relative_path%.ts}"
+  echo "export * from './${import_path}.js';" >> index.ts
+done
 
 echo "✅ index.ts created"

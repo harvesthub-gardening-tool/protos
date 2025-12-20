@@ -5,7 +5,9 @@ plugins:
     out: gen/typescript
     opt:
       - target=ts
+    include_imports: true
   - remote: buf.build/bufbuild/es
     out: gen/typescript
     opt:
       - target=ts
+    include_imports: true
