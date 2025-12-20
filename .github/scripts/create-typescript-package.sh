@@ -36,7 +36,10 @@ cat > package.json << EOF
     ".": "./index.ts",
     "./*": "./*.ts"
   },
-  "scripts": {},
+  "scripts": {
+  "build": "tsc",
+  "prepare": "npm run build"
+  },
   "keywords": [
     "protobuf",
     "grpc",
@@ -105,19 +108,24 @@ EOF
 
 echo "✅ README.md created"
 
-# Create a comprehensive index.ts that exports all generated TypeScript files
+# Create index.ts with namespaced exports to avoid symbol conflicts
 cat > index.ts << 'EOF'
 // Auto-generated index file
-// Re-export all generated Protocol Buffer types and services
+// Namespaced exports to avoid name collisions between *_pb and *_connect files.
 EOF
 
-# Find all _pb.ts and _connect.ts files and add exports
-find . -name "*_pb.ts" -o -name "*_connect.ts" | while read -r file; do
-  # Remove leading ./ and convert to relative path
-  relative_path="${file#./}"
-  # Remove .ts extension for the import
-  import_path="${relative_path%.ts}"
-  echo "export * from './${import_path}.js';" >> index.ts
+# Export each generated file under a unique namespace based on its path
+find . \( -name "*_pb.ts" -o -name "*_connect.ts" \) | sort | while read -r file; do
+  relative_path="${file#./}"          # e.g. garden/v1/garden_pb.ts
+  import_path="${relative_path%.ts}"  # e.g. garden/v1/garden_pb
+
+  # Build a safe namespace name from the path:
+  # garden/v1/garden_pb -> garden_v1_garden_pb
+  ns="${import_path//\//_}"
+  ns="${ns//-/_}"
+  ns="${ns//./_}"
+
+  echo "export * as ${ns} from './${import_path}.js';" >> index.ts
 done
 
 echo "✅ index.ts created"
