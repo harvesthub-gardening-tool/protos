@@ -95,3 +95,4 @@ message SensorSummary {
   double max_temperature = 6; // °C (optionnel par défaut en proto3)
 }
 // Test workflow TypeScript
+// Second push to test update
