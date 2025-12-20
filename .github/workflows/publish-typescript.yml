@@ -1,0 +1,107 @@
+name: Publish TypeScript Package
+
+on:
+  workflow_run:
+    workflows: ["Generate Proto Code"]
+    types: [completed]
+    branches: ["**"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-typescript:
+    name: Publish to protos-typescript Repository
+    runs-on: ubuntu-latest
+    # Run if generate workflow succeeded (works for both push and pull_request)
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate TypeScript code
+        run: buf generate --template buf.gen.typescript.yaml
+
+      - name: Create TypeScript package
+        run: |
+          chmod +x .github/scripts/create-typescript-package.sh
+          .github/scripts/create-typescript-package.sh \
+            "gen/typescript" \
+            "@harvesthub-gardening-tool/protos-typescript" \
+            "refs/heads/${{ github.event.workflow_run.head_branch }}"
+
+      - name: Determine branch name
+        id: branch
+        run: |
+          if [[ "${{ github.event.workflow_run.head_branch }}" == "main" ]]; then
+            echo "name=main" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to protos-typescript
+        env:
+          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
+        run: |
+          chmod +x .github/scripts/publish-to-repo.sh
+          .github/scripts/publish-to-repo.sh \
+            "${{ github.workspace }}/gen/typescript" \
+            "harvesthub-gardening-tool/protos-typescript" \
+            "${{ steps.branch.outputs.name }}" \
+            "${{ github.event.workflow_run.head_sha }}"
+
+  cleanup-typescript:
+    name: Cleanup Merged Branches
+    runs-on: ubuntu-latest
+    # Only cleanup when merging to main
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cleanup merged branches
+        env:
+          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
+        run: |
+          chmod +x .github/scripts/cleanup-merged-branches.sh
+          .github/scripts/cleanup-merged-branches.sh \
+            "harvesthub-gardening-tool/protos-typescript" \
+            "harvesthub-gardening-tool/protos"
+
+  tag-typescript:
+    name: Tag Version in protos-typescript
+    runs-on: ubuntu-latest
+    # Only tag when pushing a version tag
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "tag=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+
+      - name: Create tag in protos-typescript
+        env:
+          GH_TOKEN: ${{ secrets.PAT_PROTO_PUBLISH }}
+        run: |
+          chmod +x .github/scripts/tag-version.sh
+          .github/scripts/tag-version.sh \
+            "harvesthub-gardening-tool/protos-typescript" \
+            "${{ steps.version.outputs.tag }}"

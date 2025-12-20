@@ -1,0 +1,13 @@
+# configuration buf pour générer le code typeScript avec les plugins connectRPC et bufbuild es
+version: v2
+plugins:
+  - remote: buf.build/connectrpc/es
+    out: gen/typescript
+    opt:
+      - target=ts
+    include_imports: true
+  - remote: buf.build/bufbuild/es
+    out: gen/typescript
+    opt:
+      - target=ts
+    include_imports: true
