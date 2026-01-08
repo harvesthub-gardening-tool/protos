@@ -41,7 +41,7 @@ jobs:
           .github/scripts/create-rust-crate.sh \
             "gen/rust" \
             "protos-rust" \
-            "refs/heads/${{ github.event.workflow_run.head_branch }}"
+            "${{ startsWith(github.event.workflow_run.head_branch, 'v') && format('refs/tags/{0}', github.event.workflow_run.head_branch) || format('refs/heads/{0}', github.event.workflow_run.head_branch) }}"
 
       - name: Determine branch name
         id: branch
