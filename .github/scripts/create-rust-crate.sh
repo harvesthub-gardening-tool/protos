@@ -35,9 +35,6 @@ repository = "https://github.com/harvesthub-gardening-tool/protos-rust"
 [dependencies]
 prost = "0.13"
 tonic = "0.12"
-
-[build-dependencies]
-tonic-build = "0.12"
 EOF
 
 echo "✅ Cargo.toml created"
