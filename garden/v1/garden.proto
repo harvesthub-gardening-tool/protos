@@ -128,4 +128,10 @@ message SensorSummary {
   double avg_temperature = 3;
   double avg_humidity = 4;
   double avg_soil_moisture = 5;
+
+
+  // champ ajouté pour test
+  double max_temperature = 6; // °C (optionnel par défaut en proto3)
 }
+// Test workflow TypeScript
+// Second push to test update
