@@ -15,13 +15,14 @@ Interactive Swagger UI with all API endpoints, request/response examples, and sc
 ├── garden/v1/           # Garden service proto definitions
 ├── .github/
 │   ├── workflows/       # Automated CI/CD pipelines
-│   │   ├── generate.yml      # Validates & generates code
-│   │   ├── publish-go.yml    # Publishes to protos-go repo
-│   │   └── publish-docs.yml  # Deploys docs to GitHub Pages
+│   │   ├── generate.yml        # Validates & generates code
+│   │   ├── publish-go.yml      # Publishes to protos-go repo
+│   │   ├── publish-rust.yml    # Publishes to protos-rust repo
+│   │   └── publish-docs.yml    # Deploys docs to GitHub Pages
 │   └── scripts/         # Reusable automation scripts
 ├── buf.gen.go.yaml      # Go generation config
-├── buf.gen.docs.yaml    # OpenAPI generation config
-└── buf.gen.rust.yaml    # Rust generation config (future)
+├── buf.gen.rust.yaml    # Rust generation config
+└── buf.gen.docs.yaml    # OpenAPI generation config
 ```
 
 ## 🚀 Usage in Your Projects
@@ -49,6 +50,28 @@ import (
 go get github.com/harvesthub-gardening-tool/protos-go@feature/your-branch
 ```
 
+### Rust
+
+The Rust code is automatically published to a separate repository:
+
+```toml
+[dependencies]
+protos-rust = { git = "https://github.com/harvesthub-gardening-tool/protos-rust" }
+```
+
+Import in your code:
+
+```rust
+use protos_rust::garden::v1::{Garden, SensorData};
+```
+
+**Test feature branches before merging:**
+
+```toml
+[dependencies]
+protos-rust = { git = "https://github.com/harvesthub-gardening-tool/protos-rust", branch = "feature/your-branch" }
+```
+
 ### OpenAPI/Swagger
 
 Access the OpenAPI spec:
@@ -69,6 +92,9 @@ Use with Swagger UI, Postman, or any OpenAPI-compatible tool.
 ```bash
 # Generate Go code
 buf generate --template buf.gen.go.yaml
+
+# Generate Rust code
+buf generate --template buf.gen.rust.yaml
 
 # Generate OpenAPI/Swagger docs
 buf generate --template buf.gen.docs.yaml
@@ -93,8 +119,9 @@ git push origin feature/new-sensor-type
 **What happens automatically:**
 
 - ✅ Validates proto files
-- ✅ Generates code
+- ✅ Generates code (Go, Rust, TypeScript)
 - ✅ Publishes to `protos-go/feature/new-sensor-type`
+- ✅ Publishes to `protos-rust/feature/new-sensor-type`
 - ✅ You can test with: `go get @feature/new-sensor-type`
 
 ### Merging to Main
@@ -102,8 +129,9 @@ git push origin feature/new-sensor-type
 When you merge a PR:
 
 - ✅ Publishes to `protos-go/main`
+- ✅ Publishes to `protos-rust/main`
 - ✅ Updates docs at GitHub Pages
-- ✅ Auto-deletes feature branch from `protos-go`
+- ✅ Auto-deletes feature branches from target repos
 
 ### Version Tagging
 
@@ -112,15 +140,16 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-- ✅ Creates same tag in `protos-go`
+- ✅ Creates same tag in `protos-go` and `protos-rust`
 - ✅ Allows version pinning: `go get @v1.0.0`
 
 ## 📦 Published Artifacts
 
-| Artifact | Location                                                            | Auto-Updated     |
-| -------- | ------------------------------------------------------------------- | ---------------- |
-| Go Code  | [protos-go](https://github.com/harvesthub-gardening-tool/protos-go) | ✅ On every push |
-| API Docs | [GitHub Pages](https://harvesthub-gardening-tool.github.io/protos/) | ✅ On main push  |
+| Artifact   | Location                                                                  | Auto-Updated     |
+| ---------- | ------------------------------------------------------------------------- | ---------------- |
+| Go Code    | [protos-go](https://github.com/harvesthub-gardening-tool/protos-go)       | ✅ On every push |
+| Rust Code  | [protos-rust](https://github.com/harvesthub-gardening-tool/protos-rust)   | ✅ On every push |
+| API Docs   | [GitHub Pages](https://harvesthub-gardening-tool.github.io/protos/)       | ✅ On main push  |
 
 ## 🛠️ Adding New Services
 
