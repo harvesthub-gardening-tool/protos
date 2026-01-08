@@ -91,6 +91,37 @@ jobs:
             "@harvesthub-gardening-tool/protos-typescript" \
             "${{ github.ref }}"
 
+  generate-rust:
+    name: Generate Rust Code
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Generate Rust code
+        run: buf generate --template buf.gen.rust.yaml
+
+      - name: Create Rust crate
+        run: |
+          chmod +x .github/scripts/create-rust-crate.sh
+          .github/scripts/create-rust-crate.sh \
+            "gen/rust" \
+            "protos-rust" \
+            "${{ github.ref }}"
+
   generate-docs:
     name: Generate Documentation
     needs: validate
