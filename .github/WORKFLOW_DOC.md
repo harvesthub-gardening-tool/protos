@@ -9,11 +9,12 @@ This directory contains modular workflows and scripts for proto code generation 
 ├── workflows/
 │   ├── generate.yml       # Main workflow: validates and generates code
 │   ├── publish-go.yml     # Publishes Go code to protos-go repo
-│   ├── publish-rust.yml   # Publishes Rust code to protos-rust repo (future)
+│   ├── publish-rust.yml   # Publishes Rust code to protos-rust repo
 │   └── publish-docs.yml   # Publishes docs to GitHub Pages (future)
 │
 └── scripts/
     ├── create-go-module.sh          # Creates go.mod with dependencies
+    ├── create-rust-crate.sh         # Creates Cargo.toml with dependencies
     ├── publish-to-repo.sh           # Publishes code to target repo
     ├── cleanup-merged-branches.sh   # Cleans up merged PR branches
     └── tag-version.sh               # Tags versions in target repo
@@ -29,6 +30,8 @@ Triggers on: Push to any branch, PRs to main
 
 - `validate` - Lints proto files
 - `generate-go` - Generates Go code
+- `generate-rust` - Generates Rust code
+- `generate-typescript` - Generates TypeScript code
 - `generate-docs` - Generates OpenAPI documentation
 
 ### 2. **publish-go.yml** - Go Publishing
@@ -43,6 +46,18 @@ Triggers on: Successful completion of `generate.yml` on push events
 - `cleanup-go` - Deletes merged branches from `protos-go`
 - `tag-go` - Creates version tags in `protos-go`
 
+### 3. **publish-rust.yml** - Rust Publishing
+
+Triggers on: Successful completion of `generate.yml` on push events
+
+**Jobs:**
+
+- `publish-rust` - Publishes to `protos-rust` repository
+  - Main branch → publishes to `protos-rust/main`
+  - Feature branch → publishes to `protos-rust/feature-branch`
+- `cleanup-rust` - Deletes merged branches from `protos-rust`
+- `tag-rust` - Creates version tags in `protos-rust`
+
 ## 🛠️ Scripts Reference
 
 ### create-go-module.sh
@@ -54,6 +69,17 @@ Creates a Go module with proper dependencies.
 
 # Example:
 ./create-go-module.sh "gen/go" "github.com/org/protos-go" "refs/heads/main"
+```
+
+### create-rust-crate.sh
+
+Creates a Rust crate with proper dependencies.
+
+```bash
+./create-rust-crate.sh <output_dir> <crate_name> <git_ref>
+
+# Example:
+./create-rust-crate.sh "gen/rust" "protos-rust" "refs/heads/main"
 ```
 
 ### publish-to-repo.sh
