@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/harvesthub-gardening-tool/protos-go/auth/v1;authv1";
+
+service AuthService {
+  // Public — no token required
+  rpc Register(RegisterRequest)   returns (RegisterResponse);
+  rpc Login(LoginRequest)         returns (LoginResponse);
+
+  // Protected — valid user token required
+  rpc CreateHubToken(CreateHubTokenRequest) returns (CreateHubTokenResponse);
+  rpc ListHubTokens(ListHubTokensRequest)   returns (ListHubTokensResponse);
+  rpc RevokeHubToken(RevokeHubTokenRequest) returns (RevokeHubTokenResponse);
+}
+
+message RegisterRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string token   = 2;
+}
+
+message LoginRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message CreateHubTokenRequest {
+  string hub_name = 1;
+}
+
+message CreateHubTokenResponse {
+  string token = 1;
+}
+
+message ListHubTokensRequest {}
+
+message HubTokenInfo {
+  string id        = 1;
+  string hub_name  = 2;
+  int64  created_at = 3; // Unix milliseconds
+  bool   revoked   = 4;
+}
+
+message ListHubTokensResponse {
+  repeated HubTokenInfo tokens = 1;
+}
+
+message RevokeHubTokenRequest {
+  string token_id = 1;
+}
+
+message RevokeHubTokenResponse {}
