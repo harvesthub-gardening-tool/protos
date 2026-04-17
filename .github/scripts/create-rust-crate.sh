@@ -33,27 +33,39 @@ description = "Protocol Buffer definitions for Harvest Hub"
 repository = "https://github.com/harvesthub-gardening-tool/protos-rust"
 
 [dependencies]
-prost = "0.13"
-tonic = "0.12"
+prost = "0.14"
+tonic = "0.14"
+tonic-prost = "0.14"
 EOF
 
 echo "✅ Cargo.toml created"
 
-# Create lib.rs if it doesn't exist
-if [ ! -f "src/lib.rs" ]; then
-  mkdir -p src
-  cat > src/lib.rs << 'EOF'
-//! Harvest Hub Protocol Buffer definitions
-//!
-//! This crate contains generated Rust code from the Harvest Hub protobuf definitions.
+# Auto-generate src/lib.rs from discovered proto packages
+mkdir -p src
+{
+  echo '//! Harvest Hub Protocol Buffer definitions'
+  echo ''
 
-pub mod garden {
-    pub mod v1 {
-        tonic::include_proto!("garden.v1");
-    }
-}
-EOF
-  echo "✅ src/lib.rs created"
-fi
+  # Find all generated prost files (skip tonic companion files — they are
+  # pulled in automatically via include!() inside the prost file).
+  find . -name '*.rs' -not -path './src/*' -not -name '*.tonic.rs' | sort | while read -r pkg_file; do
+    rel_path="${pkg_file#./}"                  # garden/v1/garden.v1.rs
+    pkg_name="$(basename "$pkg_file" .rs)"     # garden.v1
+    IFS='.' read -ra parts <<< "$pkg_name"     # (garden v1)
+
+    indent=""
+    for part in "${parts[@]}"; do
+      echo "${indent}pub mod ${part} {"
+      indent="${indent}    "
+    done
+    echo "${indent}include!(\"../${rel_path}\");"
+    for part in "${parts[@]}"; do
+      indent="${indent#    }"
+      echo "${indent}}"
+    done
+    echo ""
+  done
+} > src/lib.rs
+echo "✅ src/lib.rs auto-generated"
 
 echo "✅ Rust crate structure complete"
