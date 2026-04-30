@@ -1,0 +1,206 @@
+syntax = "proto3";
+
+package auth.v2;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/harvesthub-gardening-tool/protos-go/auth/v2;authv2";
+
+// OpenAPI spec for the Auth v2 API
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Auth API v2"
+    version: "2.0"
+    contact: {name: "Harvest Hub Project"}
+    description: "Auth API v2 — QR-based hub provisioning.\n\n**Public endpoints:** Register, Login, ClaimHubToken — no bearer token required.\n**Protected endpoints:** AssociateHub, ListHubs, RevokeHub — require a valid user Bearer token.\n\n**Hub provisioning flow:**\n1. Hub is flashed with a unique `device_id` (UUID) and `hub_secret`. Both are encoded in a QR code printed on the device.\n2. User scans the QR and calls `AssociateHub(device_id, hub_secret, hub_name)` while authenticated. The backend creates a Hub record bound to the user and pre-generates (but does not return) a hub JWT.\n3. When the hub first reaches the internet, it calls `ClaimHubToken(device_id, hub_secret)` (public). The backend verifies the secret, returns the JWT exactly once, and marks the hub as claimed.\n4. Subsequent hub→backend calls (e.g. InsertSensorData) authenticate with that JWT.\n\nA hub can only be associated with one user. `AssociateHub` is rejected if the device_id is already associated."
+  }
+  schemes: [HTTP, HTTPS]
+  consumes: ["application/json", "application/proto"]
+  produces: ["application/json", "application/proto"]
+  security_definitions: {
+    security: {
+      key: "bearer"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "User JWT token. Format: 'Bearer <token>'"
+      }
+    }
+  }
+};
+
+// ====== Service ======
+service AuthService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "User authentication and QR-based hub provisioning (v2)."
+  };
+
+  // Public — no token required
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/Register"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Register (AuthService v2)"
+      description: "Create a new user account. Returns a user JWT token valid for 24 hours."
+      tags: ["Auth v2"]
+      security: {} // public — no bearer required
+    };
+  }
+
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/Login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Login (AuthService v2)"
+      description: "Validate credentials and return a user JWT token valid for 24 hours."
+      tags: ["Auth v2"]
+      security: {} // public — no bearer required
+    };
+  }
+
+  // Protected — valid user token required
+  rpc AssociateHub(AssociateHubRequest) returns (AssociateHubResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/AssociateHub"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "AssociateHub (AuthService v2)"
+      description: "Associate a physical hub (identified by `device_id` and `hub_secret` from its QR code) with the authenticated user. Creates the Hub record and pre-generates a hub service-account JWT (valid 1 year) that the hub will later retrieve via ClaimHubToken. Fails with ALREADY_EXISTS if the device_id is already associated, or PERMISSION_DENIED if the secret does not match a known device."
+      tags: ["Auth v2"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+          value: {}
+        }
+      }
+    };
+  }
+
+  // Public — hub has no JWT yet on first boot
+  rpc ClaimHubToken(ClaimHubTokenRequest) returns (ClaimHubTokenResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/ClaimHubToken"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ClaimHubToken (AuthService v2)"
+      description: "Called by a hub on first boot. Exchanges (`device_id`, `hub_secret`) for the hub JWT pre-generated during AssociateHub. Claim-once: subsequent calls for the same device fail with FAILED_PRECONDITION. The token is returned exactly once and must be persisted by the hub."
+      tags: ["Auth v2"]
+      security: {} // public — hub has no token yet
+    };
+  }
+
+  rpc ListHubs(ListHubsRequest) returns (ListHubsResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/ListHubs"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListHubs (AuthService v2)"
+      description: "List all hubs associated with the authenticated user."
+      tags: ["Auth v2"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+          value: {}
+        }
+      }
+    };
+  }
+
+  rpc RevokeHub(RevokeHubRequest) returns (RevokeHubResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/RevokeHub"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "RevokeHub (AuthService v2)"
+      description: "Revoke the association between a hub and the authenticated user. Revokes the underlying hub token; the hub will be unable to insert sensor data until re-associated."
+      tags: ["Auth v2"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+          value: {}
+        }
+      }
+    };
+  }
+}
+
+// ====== Messages ======
+message RegisterRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string token   = 2;
+}
+
+message LoginRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+// ---- Hub provisioning ----
+
+message AssociateHubRequest {
+  // Unique device identifier (UUID) generated by the hub at first flash and printed in the QR code.
+  string device_id   = 1;
+  // Per-device secret (hex-encoded) printed in the QR code. Used to authenticate the hub during ClaimHubToken.
+  string hub_secret  = 2;
+  // Human-readable name chosen by the user (e.g. "Greenhouse Hub").
+  string hub_name    = 3;
+}
+
+message AssociateHubResponse {
+  // Server-side hub ID (database primary key, stringified).
+  string hub_id    = 1;
+  string device_id = 2;
+  string hub_name  = 3;
+}
+
+message ClaimHubTokenRequest {
+  string device_id  = 1;
+  string hub_secret = 2;
+}
+
+message ClaimHubTokenResponse {
+  // Hub service-account JWT. Returned exactly once; the hub must persist it.
+  string token = 1;
+}
+
+message ListHubsRequest {}
+
+message HubInfo {
+  // Server-side hub ID (database primary key, stringified).
+  string id         = 1;
+  string device_id  = 2;
+  string hub_name   = 3;
+  int64  created_at = 4; // Unix milliseconds
+  bool   claimed    = 5; // true once the hub has retrieved its JWT
+  bool   revoked    = 6;
+}
+
+message ListHubsResponse {
+  repeated HubInfo hubs = 1;
+}
+
+message RevokeHubRequest {
+  // Server-side hub ID returned by AssociateHub / ListHubs.
+  string hub_id = 1;
+}
+
+message RevokeHubResponse {}
