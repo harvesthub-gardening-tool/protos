@@ -13,7 +13,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     title: "Garden API v2"
     version: "2.0"
     contact: {name: "Harvest Hub Project"}
-    description: "API to collect and consult garden sensor data.\n\n**v2 changes:**\n- Adds optional `hub_id` filter to GetSummary (lets clients scope queries to a single hub).\n- Each `SensorSummary` now carries the `hub_id` of the hub that owns the probe.\n\n**Authentication:** All endpoints require Bearer token authentication (user JWT for reads, hub JWT for writes)."
+    description: "API to collect and consult garden sensor data.\n\n**v2 changes:**\n- Adds optional `hub_id` filter to GetSummary (lets clients scope queries to a single hub).\n- Each `SensorSummary` now carries the `hub_id` of the hub that owns the probe.\n- Sensor readings use explicit air/soil metric names plus air pressure.\n\n**Authentication:** All endpoints require Bearer token authentication (user JWT for reads, hub JWT for writes)."
   }
   schemes: [HTTP, HTTPS]
   consumes: ["application/json", "application/proto"]
@@ -84,11 +84,13 @@ service GardenService {
 
 // ====== Messages ======
 message InsertSensorDataRequest {
-  string node_id       = 1; // Probe identifier (BLE MAC or stable hardware ID)
-  double temperature   = 2; // Celsius
-  double humidity      = 3; // Percent (0-100)
-  double soil_moisture = 4; // Percent (0-100)
-  int64  timestamp     = 5; // Unix milliseconds
+  string node_id           = 1; // Probe identifier (BLE MAC or stable hardware ID)
+  double air_temperature   = 2; // Celsius
+  double air_humidity      = 3; // Percent (0-100)
+  double soil_humidity     = 4; // Percent (0-100)
+  int64  timestamp         = 5; // Unix milliseconds
+  double air_pressure      = 6; // Pascals
+  double soil_temperature  = 7; // Celsius
 }
 
 message InsertSensorDataResponse {
@@ -108,12 +110,14 @@ message GetSummaryResponse {
 }
 
 message SensorSummary {
-  string node_id           = 1;
-  int64  interval_start    = 2; // Unix milliseconds
-  double avg_temperature   = 3;
-  double avg_humidity      = 4;
-  double avg_soil_moisture = 5;
-  double max_temperature   = 6; // Celsius
+  string node_id               = 1;
+  int64  interval_start        = 2; // Unix milliseconds
+  double avg_air_temperature   = 3; // Celsius
+  double avg_air_humidity      = 4; // Percent (0-100)
+  double avg_soil_humidity     = 5; // Percent (0-100)
+  double max_air_temperature   = 6; // Celsius
   // ID of the hub that owns the probe (matches `hubs.id`).
-  string hub_id            = 7;
+  string hub_id                = 7;
+  double avg_air_pressure      = 8; // Pascals
+  double avg_soil_temperature  = 9; // Celsius
 }
