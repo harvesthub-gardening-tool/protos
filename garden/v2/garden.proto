@@ -99,6 +99,25 @@ service GardenService {
       }
     };
   }
+
+  // Return the most recent sensor reading for a probe owned by the caller. User-only.
+  rpc GetLast(GetLastRequest) returns (GetLastResponse) {
+    option (google.api.http) = {
+      post: "/garden.v2.GardenService/GetLast"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetLast (GardenService v2)"
+      description: "Returns the single most recent sensor reading for the given probe. The probe must be bound to a hub owned by the authenticated user; if the probe does not exist, has no data, or belongs to a different user, NOT_FOUND is returned. Only user JWTs are accepted."
+      tags: ["Garden v2"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+          value: {}
+        }
+      }
+    };
+  }
 }
 
 // ====== Messages ======
@@ -152,4 +171,22 @@ message ProbeInfo {
 
 message ListProbesForHubNameResponse {
   repeated ProbeInfo probes = 1;
+}
+
+message SensorReading {
+  string node_id           = 1; // Probe identifier (BLE MAC or stable hardware ID).
+  int64  time              = 2; // Unix milliseconds of the reading timestamp.
+  double air_temperature   = 3; // Celsius
+  double air_pressure      = 4; // Pascals
+  double air_humidity      = 5; // Percent (0-100)
+  double soil_temperature  = 6; // Celsius
+  double soil_humidity     = 7; // Percent (0-100)
+}
+
+message GetLastRequest {
+  string node_id = 1; // Probe identifier (BLE MAC or stable hardware ID).
+}
+
+message GetLastResponse {
+  SensorReading reading = 1;
 }
