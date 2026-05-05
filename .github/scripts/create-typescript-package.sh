@@ -71,7 +71,7 @@ cat > tsconfig.json << EOF
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "isolatedModules": true
   },
   "include": ["**/*.ts"],
