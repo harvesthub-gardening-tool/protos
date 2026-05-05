@@ -13,7 +13,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     title: "Auth API v2"
     version: "2.0"
     contact: {name: "Harvest Hub Project"}
-    description: "Auth API v2 — QR-based hub provisioning.\n\n**Public endpoints:** Register, Login, ClaimHubToken — no bearer token required.\n**Protected endpoints:** AssociateHub, ListHubs, RevokeHub — require a valid user Bearer token.\n\n**Hub provisioning flow:**\n1. Hub is flashed with a unique `device_id` (UUID) and `hub_secret`. Both are encoded in a QR code printed on the device.\n2. User scans the QR and calls `AssociateHub(device_id, hub_secret, hub_name)` while authenticated. The backend creates a Hub record bound to the user and pre-generates (but does not return) a hub JWT.\n3. When the hub first reaches the internet, it calls `ClaimHubToken(device_id, hub_secret)` (public). The backend verifies the secret, returns the JWT exactly once, and marks the hub as claimed.\n4. Subsequent hub→backend calls (e.g. InsertSensorData) authenticate with that JWT.\n\nA hub can only be associated with one user. `AssociateHub` is rejected if the device_id is already associated."
+    description: "Auth API v2 — QR-based hub provisioning.\n\n**Public endpoints:** Register, Login, ClaimHubToken — no bearer token required.\n**Protected endpoints:** AssociateHub, ListHubs, RevokeHub, ChangeEmail, ChangePassword — require a valid user Bearer token.\n\n**Hub provisioning flow:**\n1. Hub is flashed with a unique `device_id` (UUID) and `hub_secret`. Both are encoded in a QR code printed on the device.\n2. User scans the QR and calls `AssociateHub(device_id, hub_secret, hub_name)` while authenticated. The backend creates a Hub record bound to the user and pre-generates (but does not return) a hub JWT.\n3. When the hub first reaches the internet, it calls `ClaimHubToken(device_id, hub_secret)` (public). The backend verifies the secret, returns the JWT exactly once, and marks the hub as claimed.\n4. Subsequent hub→backend calls (e.g. InsertSensorData) authenticate with that JWT.\n\nA hub can only be associated with one user. `AssociateHub` is rejected if the device_id is already associated."
   }
   schemes: [HTTP, HTTPS]
   consumes: ["application/json", "application/proto"]
@@ -132,6 +132,42 @@ service AuthService {
       }
     };
   }
+
+  rpc ChangeEmail(ChangeEmailRequest) returns (ChangeEmailResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/ChangeEmail"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ChangeEmail (AuthService v2)"
+      description: "Change the authenticated user's email in-app. Requires a valid user bearer token and current password confirmation; no email verification link is sent. Returns a refreshed user JWT carrying the new email claim."
+      tags: ["Auth v2"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+          value: {}
+        }
+      }
+    };
+  }
+
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {
+    option (google.api.http) = {
+      post: "/auth.v2.AuthService/ChangePassword"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ChangePassword (AuthService v2)"
+      description: "Change the authenticated user's password in-app. Requires a valid user bearer token and current password confirmation."
+      tags: ["Auth v2"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+          value: {}
+        }
+      }
+    };
+  }
 }
 
 // ====== Messages ======
@@ -204,3 +240,19 @@ message RevokeHubRequest {
 }
 
 message RevokeHubResponse {}
+
+message ChangeEmailRequest {
+  string new_email        = 1;
+  string current_password = 2;
+}
+
+message ChangeEmailResponse {
+  string token = 1;
+}
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password     = 2;
+}
+
+message ChangePasswordResponse {}
