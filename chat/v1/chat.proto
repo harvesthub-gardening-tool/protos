@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package chat.v1;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/harvesthub-gardening-tool/protos-go/chat/v1;chatv1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Chat API v1"
+    version: "1.0"
+    contact: {name: "Harvest Hub Project"}
+    description: "AI assistant chat API for Harvest Hub mobile clients. The backend proxies user messages to the configured AI provider and enriches requests with garden context owned by the authenticated user.\n\n**Authentication:** All endpoints require a user Bearer token. Provider API keys are server-side only and are never exposed to clients."
+  }
+  schemes: [HTTP, HTTPS]
+  consumes: ["application/json", "application/proto"]
+  produces: ["application/json", "application/proto"]
+  security_definitions: {
+    security: {
+      key: "bearer"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "User JWT token. Format: 'Bearer <token>'"
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "bearer"
+      value: {}
+    }
+  }
+};
+
+service ChatService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "AI assistant chat service."
+  };
+
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {
+    option (google.api.http) = {
+      post: "/chat.v1.ChatService/SendMessage"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "SendMessage (ChatService v1)"
+      description: "Send a user message to the Harvest Hub AI assistant. The backend injects owned garden probe context before proxying to the configured AI provider."
+      tags: ["Chat v1"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+          value: {}
+        }
+      }
+    };
+  }
+}
+
+message SendMessageRequest {
+  string message = 1;
+  repeated ChatPlantContext plants = 2;
+}
+
+message SendMessageResponse {
+  string reply = 1;
+}
+
+message ChatPlantContext {
+  string id = 1;
+  string name = 2;
+  int32 quantity = 3;
+  string probe_node_id = 4;
+}
